@@ -1,0 +1,6 @@
+File compression using arithmetic coding
+========================================
+
+Airthmetic coding can yield very high compression rates and it's possible to
+implement the decompressor with a rather small amount of code. These properties
+make it an interesting algorithm for small demos (4k and such).

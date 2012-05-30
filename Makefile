@@ -1,3 +1,3 @@
-CXXFLAGS=-Os -g -Wall -Wextra
+CXXFLAGS=-O0 -g -Wall -Wextra
 
 all: packtest

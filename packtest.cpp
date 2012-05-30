@@ -8,7 +8,7 @@ public:
   Predicter()
     : previousBits(0)
   {
-    for (int i = 0 ; i < 32 ; ++i) this->counts[i] = 0;
+    for (int i = 0 ; i < 512 ; ++i) this->counts[i] = 0;
   }
 
   uint32_t Probability() {
@@ -27,19 +27,19 @@ public:
     int amount = 1;
     if (bit) this->counts[this->previousBits * 2 + 1] += amount;
     else this->counts[this->previousBits * 2] += amount;
-    this->previousBits = ((this->previousBits << 1) | bit) & 0xf;
+    this->previousBits = ((this->previousBits << 1) | bit) & 0xff;
   }
 
   void PrintStatus() {
     printf("Predicter matrix:\n");
-    for (int i = 0 ; i < 16 ; ++i) {
+    for (int i = 0 ; i < 256 ; ++i) {
       printf("%4d  %4d\n", counts[i * 2], counts[i * 2 + 1]);
     }
   }
 
 private:
   int previousBits;
-  int counts[32];
+  int counts[256 * 2];
 };
 
 class Encoder {
@@ -111,28 +111,7 @@ private:
 
   void FinishEncoding() {
     if (!this->finished) {
-      /*
-      while ((limitLow & (1ULL << this->limitHighBit)) == (limitHigh & (1ULL << this->limitHighBit))) {
-	WriteBit((limitLow & (1ULL << this->limitHighBit)) ? 1 : 0);
-	this->limitHighBit--;
-	limitLow &= (1ULL << (this->limitHighBit + 1ULL)) - 1ULL;
-	limitHigh &= (1ULL << (this->limitHighBit + 1ULL)) - 1ULL;
-      }
-      uint64_t middle = (this->limitLow + this->limitHigh) / 2;
-      while (this->limitHighBit >= 0) {
-	this->WriteBit((middle & (1 << this->limitHighBit)) ? 1 : 0);
-	this->limitHighBit--;
-	}*/
-      /*
-      printf("Writing %d bits\n", this->limitHighBit);
-      while (this->limitHighBit >= 0) {
-	this->WriteBit((split & (1 << this->limitHighBit)) ? 1 : 0);
-	this->limitHighBit--;
-      }
-      */
       while (this->encode_pos % 8) {
-	//this->WriteBit((this->limitLow & (1 << this->limitHighBit)) ? 1 : 0);
-	//this->limitHighBit--;
 	this->WriteBit(0);
       }
       this->finished = true;
@@ -173,12 +152,9 @@ public:
       }
     }
 
-    printf("encode_pos %d, limit high %d\n", this->encode_pos, this->limitHighBit);
     int endPosition = this->encode_pos + this->limitHighBit;
     while (this->encode_pos < endPosition) {
-      uint64_t prob = pred.Probability();
-      this->EncodeBit(0, prob);
-      pred.Update(0, prob);
+      this->EncodeBit(0, 0x80000000U);
     }
   }
 
@@ -297,7 +273,7 @@ public:
       this->WriteBit(bit);
       pred.Update(bit, prob);
     }
-    pred.PrintStatus();
+    //pred.PrintStatus();
   }
 
   const char *GetDecoded() {
@@ -316,9 +292,10 @@ public:
 };
 
 int main() {
-  const char *text = "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa";
+  //const char *text = "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa";
   //const char *text = "The quick brown \xff fox jumps over the lazy dog.\xff";
   //const char *text = "AbCdEfGh";
+  const char *text = "Lorem ipsum dolor sit amet, consectetur adipisicing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat. Duis aute irure dolor in reprehenderit in voluptate velit esse cillum dolore eu fugiat nulla pariatur. Excepteur sint occaecat cupidatat non proident, sunt in culpa qui officia deserunt mollit anim id est laborum.";
 
   printf("Encoding \"%s\" (%lu bytes)\n", text, strlen(text));
   for (size_t i = 0 ; i < strlen(text) ; ++i) {
@@ -347,11 +324,13 @@ int main() {
   const char *dec_data = dec.GetDecoded();
 
   printf("Decoded length %ld bytes\n", dec_len);
+  /*
   for (size_t i = 0 ; i < dec_len ; ++i) {
     printf("%02x ", (unsigned char)dec_data[i]);
     if (i % 16 == 15) printf("\n");
   }
   printf("\n");
+  */
 
   if (strlen(text) != dec_len) {
     printf("Length mismatch");
